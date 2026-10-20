@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>The Mainframe</title>
+  <style>
+    :root {
+      --bg-app: #08080a;
+      --bg-panel: #111115;
+      --bg-card: #181820;
+      --border: #242430;
+      --matrix: #00ff66;
+      --text: #ffffff;
+      --text-muted: #828292;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-app);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .view {
+      width: 100%;
+      height: 100%;
+      display: flex;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Lock Screen & Matrix */
+    #lock-screen {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+      z-index: 9999;
+    }
+
+    #matrix-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .lock-card {
+      position: relative;
+      z-index: 10;
+      width: 90%;
+      max-width: 360px;
+      background: rgba(14, 14, 18, 0.95);
+      border: 1px solid rgba(0, 255, 102, 0.4);
+      box-shadow: 0 0 35px rgba(0, 255, 102, 0.2);
+      padding: 2rem;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .terminal-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      color: var(--matrix);
+      border: 1px solid var(--matrix);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .lock-card h2 {
+      letter-spacing: 3px;
+      font-size: 1.5rem;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-bottom: 16px;
+    }
+
+    input[type="password"], input[type="text"], select, textarea {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: #fff;
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      outline: none;
+      margin-bottom: 8px;
+      user-select: text;
+    }
+
+    .btn-main, .action-btn {
+      width: 100%;
+      background: #ffffff;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      padding: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 6px;
+    }
+
+    .action-btn.outline {
+      background: var(--bg-card);
+      color: #fff;
+      border: 1px solid var(--border);
+    }
+
+    /* App Header */
+    .app-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 50px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      z-index: 100;
+    }
+
+    .header-left, .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-center {
+      flex: 1;
+      max-width: 280px;
+      margin: 0 10px;
+    }
+
+    #global-search {
+      margin-bottom: 0;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      border-radius: 14px;
+    }
+
+    .system-status {
+      font-size: 0.75rem;
+      color: var(--matrix);
+    }
+
+    .btn-icon {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.4rem;
+      cursor: pointer;
+    }
+
+    /* Drawer Sidebar */
+    .drawer {
+      position: fixed;
+      top: 50px;
+      left: 0;
+      width: 280px;
+      height: calc(100vh - 50px);
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 90;
+      transition: transform 0.2s ease;
+    }
+
+    .content-body {
+      margin-left: 280px;
+      width: calc(100% - 280px);
+      padding-top: 50px;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sub-view {
+      padding: 16px;
+    }
+
+    .tabs-header {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-tab {
+      flex: 1;
+      padding: 10px 0;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .nav-tab.active {
+      color: #fff;
+      border-bottom: 2px solid var(--matrix);
+    }
+
+    .tab-pane {
+      display: none;
+      padding: 10px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    .tree-container {
+      margin-top: 8px;
+    }
+
+    .folder-row {
+      background: var(--bg-card);
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      font-size: 0.8rem;
+    }
+
+    .note-item-btn {
+      display: block;
+      width: 100%;
+      padding: 6px 8px;
+      background: none;
+      border: none;
+      color: #ccc;
+      text-align: left;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .note-item-btn:hover {
+      background: var(--bg-card);
+      color: #fff;
+    }
+
+    /* Welcome Box */
+    .welcome-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 700px;
+      margin: 10px auto;
+    }
+
+    .welcome-tag {
+      color: var(--matrix);
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+
+    .welcome-desc {
+      color: var(--text-muted);
+      margin: 6px 0 16px;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .quick-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .stat-card span {
+      font-size: 1.4rem;
+      font-weight: bold;
+      display: block;
+    }
+
+    .stat-card label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    /* Editor */
+    .editor-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .note-action-btns {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    #note-folder-assigner {
+      width: auto;
+      margin-bottom: 0;
+      padding: 4px 6px;
+      font-size: 0.75rem;
+    }
+
+    .note-metrics-bar {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .note-image-gallery {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      margin-bottom: 8px;
+    }
+
+    .note-thumb {
+      height: 70px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .note-read-area {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 6px;
+      min-height: 300px;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      font-size: 0.9rem;
+      user-select: text;
+    }
+
+    #note-body-input {
+      min-height: 300px;
+      line-height: 1.5;
+    }
+
+    /* Calendar */
+    .compact-cal-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .calendar-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .cal-nav {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .calendar-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      margin-bottom: 4px;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .cal-day {
+      height: 48px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .cal-day.today {
+      border-color: var(--matrix);
+    }
+
+    .cal-event-tag {
+      font-size: 0.55rem;
+      padding: 1px 2px;
+      border-radius: 2px;
+      margin-top: 1px;
+      color: #000;
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Chat AI Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+    }
+
+    .modal-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 440px;
+    }
+
+    .ai-card {
+      height: 480px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .btn-close {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .chat-log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      background: var(--bg-app);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .chat-msg {
+      padding: 8px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      margin-bottom: 6px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      user-select: text;
+    }
+
+    .chat-msg.ai {
+      background: var(--bg-card);
+      color: var(--matrix);
+      border-left: 2px solid var(--matrix);
+    }
+
+    .chat-msg.user {
+      background: #232332;
+      color: #fff;
+      text-align: right;
+    }
+
+    .btn-insert-note {
+      margin-top: 6px;
+      background: #00ff66;
+      color: #000;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-weight: bold;
+      font-size: 0.7rem;
+      cursor: pointer;
+      display: inline-block;
+    }
+
+    /* Miscellaneous */
+    .btn-pill {
+      background: var(--bg-card);
+      color: #fff;
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+
+    .btn-ai-pulse {
+      color: var(--matrix);
+      border-color: rgba(0, 255, 102, 0.4);
+    }
+
+    .btn-edit-mode {
+      background: #ffb703;
+      color: #000;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    .btn-danger-sm {
+      background: #e63946;
+      color: #fff;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+
+    .drawer-bottom {
+      padding: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .active-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--matrix);
+      border-radius: 50%;
+    }
+
+    .btn-logout {
+      width: 100%;
+      padding: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: #fff;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .drawer {
+        transform: translateX(-100%);
+      }
+      .drawer.open {
+        transform: translateX(0);
+      }
+      .content-body {
+        margin-left: 0;
+        width: 100%;
+      }
+      .header-center {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Lock Screen -->
+  <div id="lock-screen">
+    <canvas id="matrix-canvas"></canvas>
+    <div class="lock-card">
+      <div class="terminal-badge">CORE ACCESS SECURE</div>
+      <h2>THE MAINFRAME</h2>
+      <p class="subtitle">Press ENTER or Click to Initialize</p>
+      <input type="password" id="pass-input" placeholder="ENTER ACCESS KEY" autocomplete="off" autofocus />
+      <button id="btn-login" class="btn-main">INITIALIZE CORE</button>
+    </div>
+  </div>
+
+  <!-- Workspace Shell -->
+  <div id="main-screen" class="view hidden">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <button id="toggle-sidebar" class="btn-icon">☰</button>
+        <span class="system-status">● MAINFRAME // ONLINE</span>
+      </div>
+      <div class="header-center">
+        <input type="text" id="global-search" placeholder="🔍 Search notes..." />
+      </div>
+      <div class="header-right">
+        <button id="btn-home-nav" class="btn-pill">🏠 HOME</button>
+        <button id="btn-ai-toggle" class="btn-pill btn-ai-pulse">⚡ INBUILT AI</button>
+      </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside id="drawer" class="drawer">
+      <div class="tabs-header">
+        <button class="nav-tab active" data-tab="notes">NOTES</button>
+        <button class="nav-tab" data-tab="files">FILES</button>
+        <button class="nav-tab" data-tab="calendar">CALENDAR</button>
+        <button class="nav-tab" data-tab="vault" style="color:#ffaa00;">🔒 VAULT</button>
+      </div>
+
+      <!-- Notes Tab -->
+      <div id="tab-notes" class="tab-pane active">
+        <button class="action-btn" id="btn-add-note">+ NEW NOTE</button>
+        <button class="action-btn outline" id="btn-add-folder">+ NEW FOLDER</button>
+        <div id="notes-tree" class="tree-container"></div>
+      </div>
+
+      <!-- Files Tab -->
+      <div id="tab-files" class="tab-pane">
+        <label class="action-btn" style="display:block;text-align:center;cursor:pointer;">
+          + UPLOAD FILE
+          <input type="file" id="file-uploader" hidden />
+        </label>
+        <div id="files-tree" class="tree-container"></div>
+      </div>
+
+      <!-- Calendar Tab -->
+      <div id="tab-calendar" class="tab-pane">
+        <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:6px;">EVENT GROUPS</div>
+        <div id="group-list"></div>
+        <div style="margin-top:10px;">
+          <input type="text" id="new-group-name" placeholder="Group Name (e.g. Exams)" />
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:0.75rem;">
+            <span>Color:</span>
+            <input type="color" id="new-group-color" value="#00ff66" />
+          </div>
+          <button id="btn-save-group" class="btn-main">ADD GROUP</button>
+        </div>
+      </div>
+
+      <!-- Vault Tab -->
+      <div id="tab-vault" class="tab-pane">
+        <div id="vault-locked-state">
+          <p style="color:#ffaa00;font-size:0.8rem;margin-bottom:8px;">🔒 Encrypted Sector</p>
+          <input type="password" id="vault-pass-input" placeholder="Enter Vault Password" autocomplete="new-password" />
+          <button id="btn-unlock-vault" class="btn-main">UNLOCK SECTOR</button>
+        </div>
+        <div id="vault-unlocked-state" class="hidden">
+          <button class="action-btn" id="btn-add-vault-note">+ NEW SECRET NOTE</button>
+          <div id="vault-notes-tree" class="tree-container"></div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="drawer-bottom">
+        <div class="status-indicator">
+          <span class="active-dot"></span>
+          <span>1 user connected</span>
+        </div>
+        <button id="btn-logout" class="btn-logout">LOGOUT</button>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="content-body">
+      
+      <!-- View 1: Welcome Home -->
+      <section id="placeholder-view" class="sub-view">
+        <div class="welcome-box">
+          <div class="welcome-tag">CORE COMMAND SYSTEM</div>
+          <h2>THE MAINFRAME</h2>
+          <p class="welcome-desc">Your offline-ready workspace is active. Manage notes with attached screenshots, store encrypted documents, and chat with AI.</p>
+          <div class="quick-stats">
+            <div class="stat-card">
+              <span id="stat-notes">0</span>
+              <label>Notes</label>
+            </div>
+            <div class="stat-card">
+              <span id="stat-files">0</span>
+              <label>Files</label>
+            </div>
+            <div class="stat-card">
+              <span id="stat-events">0</span>
+              <label>Events</label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View 2: Note Editor -->
+      <section id="editor-view" class="sub-view hidden">
+        <div class="editor-header">
+          <input type="text" id="note-title-input" placeholder="Note Title" readonly style="flex:1;" />
+          <div class="note-action-btns">
+            <select id="note-folder-assigner"></select>
+            <label class="btn-pill" style="cursor:pointer;">
+              📷 +IMG
+              <input type="file" id="note-image-uploader" accept="image/*" hidden />
+            </label>
+            <button id="btn-print-note" class="btn-pill">🖨️ PRINT/PDF</button>
+            <button id="btn-toggle-edit" class="btn-edit-mode">✏️ EDIT NOTE</button>
+            <button id="btn-delete-note" class="btn-danger-sm">DELETE</button>
+          </div>
+        </div>
+
+        <div class="note-metrics-bar">
+          <span id="metric-words">0 words</span> • 
+          <span id="metric-chars">0 characters</span>
+        </div>
+
+        <div id="note-image-gallery" class="note-image-gallery"></div>
+        <div id="note-view-display" class="note-read-area"></div>
+        <textarea id="note-body-input" class="hidden" placeholder="Start typing..."></textarea>
+      </section>
+
+      <!-- View 3: Files Manager -->
+      <section id="files-view" class="sub-view hidden">
+        <h3 style="margin-bottom:10px;">Stored Files</h3>
+        <div id="files-grid"></div>
+      </section>
+
+      <!-- View 4: Calendar -->
+      <section id="calendar-view" class="sub-view hidden">
+        <div class="compact-cal-container">
+          <div class="calendar-controls">
+            <button id="cal-prev" class="cal-nav">◀</button>
+            <span id="cal-month-year" style="font-size:0.85rem;font-weight:bold;"></span>
+            <button id="cal-next" class="cal-nav">▶</button>
+            <button id="btn-today" class="btn-pill">TODAY</button>
+          </div>
+          <div class="calendar-weekdays">
+            <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+          </div>
+          <div id="calendar-grid" class="calendar-grid"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- AI Modal -->
+  <div id="ai-modal" class="modal-backdrop hidden">
+    <div class="modal-card ai-card">
+      <div class="modal-header">
+        <span style="font-size:0.85rem;font-weight:bold;color:var(--matrix);">⚡ Mainframe Neural AI</span>
+        <button id="btn-close-ai" class="btn-close">✕</button>
+      </div>
+      <div id="ai-chat-log" class="chat-log">
+        <div class="chat-msg ai"><strong>AI READY.</strong><br>Ask me for code, explanations, math solutions, or type "contact" for Alwin's verified info.</div>
+      </div>
+      <div style="display:flex;gap:4px;">
+        <input type="text" id="ai-user-query" placeholder="Ask AI anything..." style="margin-bottom:0;" />
+        <button id="btn-ai-send" class="btn-main" style="width:auto;margin-bottom:0;padding:8px 14px;">SEND</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Event Modal -->
+  <div id="event-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span id="modal-date-label" style="font-size:0.85rem;font-weight:bold;">Events</span>
+        <button id="btn-close-event-modal" class="btn-close">✕</button>
+      </div>
+      <div id="day-events-list" style="max-height:120px;overflow-y:auto;margin-bottom:8px;"></div>
+      <input type="text" id="modal-event-title" placeholder="Event description..." />
+      <select id="modal-event-group"></select>
+      <button id="btn-save-event" class="btn-main">Add Event</button>
+    </div>
+  </div>
+
+  <script>
+    // 1. Matrix Digital Rain Canvas
+    const canvas = document.getElementById('matrix-canvas');
+    const ctx = canvas.getContext('2d');
+    let drops = [];
+    const fontSize = 16;
+    const chars = '0123456789ABCDEF@#$%&*+-/<>~ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ';
+
+    function initMatrix() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const columns = Math.floor(canvas.width / fontSize);
+      drops = [];
+      for (let i = 0; i < columns; i++) drops[i] = Math.floor(Math.random() * -30);
+    }
+
+    function drawMatrix() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#00ff66';
+      ctx.font = `${fontSize}px monospace`;
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = chars.charAt(Math.floor(Math.random() * chars.length));
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      }
+    }
+
+    initMatrix();
+    setInterval(drawMatrix, 35);
+    window.addEventListener('resize', initMatrix);
+
+    // 2. Storage & State
+    let appData = JSON.parse(localStorage.getItem('mainframe_clean_db')) || {
+      folders: [],
+      notes: [],
+      vaultNotes: [],
+      files: [],
+      groups: [{ id: '1', name: 'General', color: '#00ff66' }],
+      events: []
+    };
+
+    let currentNoteId = null;
+    let isVaultMode = false;
+    let isEditMode = false;
+    let calDate = new Date();
+    let selectedDateStr = null;
+    const VAULT_PASS = '#IamAlwin123@';
+
+    function saveState() {
+      localStorage.setItem('mainframe_clean_db', JSON.stringify(appData));
+      updateStats();
+    }
+
+    function updateStats() {
+      document.getElementById('stat-notes').innerText = appData.notes.length;
+      document.getElementById('stat-files').innerText = appData.files.length;
+      document.getElementById('stat-events').innerText = appData.events.length;
+    }
+
+    // 3. Login Flow
+    const passInput = document.getElementById('pass-input');
+    passInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleAuth(); });
+    document.getElementById('btn-login').addEventListener('click', handleAuth);
+
+    function handleAuth() {
+      if (passInput.value.length > 0) {
+        document.getElementById('lock-screen').classList.add('hidden');
+        document.getElementById('main-screen').classList.remove('hidden');
+        renderNotesTree();
+        renderGroups();
+        renderCalendar(calDate);
+        updateStats();
+      }
+    }
+
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      if (confirm('Are you sure you want to log out?')) location.reload();
+    });
+
+    // 4. Sidebar & View Routing
+    const drawer = document.getElementById('drawer');
+    document.getElementById('toggle-sidebar').addEventListener('click', () => drawer.classList.toggle('open'));
+    document.getElementById('btn-home-nav').addEventListener('click', () => {
+      showView('placeholder');
+      if (window.innerWidth <= 768) drawer.classList.remove('open');
+    });
+
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+
+        if (tab.dataset.tab === 'calendar') showView('calendar');
+        if (tab.dataset.tab === 'files') { showView('files'); renderFiles(); }
+        if (window.innerWidth <= 768) drawer.classList.remove('open');
+      });
+    });
+
+    function showView(id) {
+      document.getElementById('placeholder-view').classList.add('hidden');
+      document.getElementById('editor-view').classList.add('hidden');
+      document.getElementById('files-view').classList.add('hidden');
+      document.getElementById('calendar-view').classList.add('hidden');
+      document.getElementById(`${id}-view`).classList.remove('hidden');
+    }
+
+    // 5. Notes Engine
+    function renderNotesTree() {
+      const container = document.getElementById('notes-tree');
+      container.innerHTML = '';
+
+      appData.folders.forEach(f => {
+        const fDiv = document.createElement('div');
+        fDiv.className = 'folder-row';
+        fDiv.innerText = `📁 ${f}`;
+        container.appendChild(fDiv);
+
+        appData.notes.filter(n => n.folder === f).forEach(n => {
+          const btn = document.createElement('button');
+          btn.className = 'note-item-btn';
+          btn.innerText = `📄 ${n.title}`;
+          btn.onclick = () => openNote(n.id, false);
+          container.appendChild(btn);
+        });
+      });
+
+      appData.notes.filter(n => !n.folder).forEach(n => {
+        const btn = document.createElement('button');
+        btn.className = 'note-item-btn';
+        btn.innerText = `📄 ${n.title}`;
+        btn.onclick = () => openNote(n.id, false);
+        container.appendChild(btn);
+      });
+    }
+
+    document.getElementById('btn-add-folder').addEventListener('click', () => {
+      const name = prompt('Folder Name:');
+      if (name && !appData.folders.includes(name)) {
+        appData.folders.push(name);
+        saveState();
+        renderNotesTree();
+      }
+    });
+
+    document.getElementById('btn-add-note').addEventListener('click', () => {
+      const title = prompt('Note Title:') || 'Untitled Note';
+      const newNote = { id: Date.now().toString(), title, content: '', folder: '', images: [] };
+      appData.notes.unshift(newNote);
+      saveState();
+      renderNotesTree();
+      openNote(newNote.id, false);
+    });
+
+    function openNote(id, isVault) {
+      currentNoteId = id;
+      isVaultMode = isVault;
+      const list = isVault ? appData.vaultNotes : appData.notes;
+      const note = list.find(n => n.id === id);
+      if (!note) return;
+
+      setEditMode(false);
+      document.getElementById('note-title-input').value = note.title;
+      document.getElementById('note-view-display').innerText = note.content || '(Empty Note - Click "EDIT NOTE" to type)';
+      document.getElementById('note-body-input').value = note.content;
+
+      // Update folder dropdown
+      const sel = document.getElementById('note-folder-assigner');
+      sel.innerHTML = '<option value="">📁 Uncategorized</option>';
+      appData.folders.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f;
+        opt.innerText = `📁 ${f}`;
+        if (f === note.folder) opt.selected = true;
+        sel.appendChild(opt);
+      });
+
+      renderNoteImages(note.images || []);
+      updateMetrics(note.content || '');
+      showView('editor');
+    }
+
+    function setEditMode(state) {
+      isEditMode = state;
+      const display = document.getElementById('note-view-display');
+      const input = document.getElementById('note-body-input');
+      const titleInput = document.getElementById('note-title-input');
+      const btn = document.getElementById('btn-toggle-edit');
+
+      if (state) {
+        display.classList.add('hidden');
+        input.classList.remove('hidden');
+        titleInput.removeAttribute('readonly');
+        btn.innerText = '💾 SAVE NOTE';
+        btn.style.background = '#00ff66';
+      } else {
+        display.classList.remove('hidden');
+        input.classList.add('hidden');
+        titleInput.setAttribute('readonly', 'true');
+        btn.innerText = '✏️ EDIT NOTE';
+        btn.style.background = '#ffb703';
+      }
+    }
+
+    document.getElementById('btn-toggle-edit').addEventListener('click', () => {
+      if (!isEditMode) {
+        setEditMode(true);
+      } else {
+        const list = isVaultMode ? appData.vaultNotes : appData.notes;
+        const note = list.find(n => n.id === currentNoteId);
+        if (note) {
+          note.title = document.getElementById('note-title-input').value;
+          note.content = document.getElementById('note-body-input').value;
+          saveState();
+          document.getElementById('note-view-display').innerText = note.content;
+          updateMetrics(note.content);
+          if (isVaultMode) renderVaultTree(); else renderNotesTree();
+        }
+        setEditMode(false);
+      }
+    });
+
+    document.getElementById('note-folder-assigner').addEventListener('change', (e) => {
+      const list = isVaultMode ? appData.vaultNotes : appData.notes;
+      const note = list.find(n => n.id === currentNoteId);
+      if (note) {
+        note.folder = e.target.value;
+        saveState();
+        if (isVaultMode) renderVaultTree(); else renderNotesTree();
+      }
+    });
+
+    document.getElementById('note-image-uploader').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const list = isVaultMode ? appData.vaultNotes : appData.notes;
+        const note = list.find(n => n.id === currentNoteId);
+        if (note) {
+          if (!note.images) note.images = [];
+          note.images.push(evt.target.result);
+          saveState();
+          renderNoteImages(note.images);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function renderNoteImages(images) {
+      const gallery = document.getElementById('note-image-gallery');
+      gallery.innerHTML = '';
+      images.forEach(src => {
+        const img = document.createElement('img');
+        img.src = src;
+        img.className = 'note-thumb';
+        gallery.appendChild(img);
+      });
+    }
+
+    function updateMetrics(text) {
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      document.getElementById('metric-words').innerText = `${words} words`;
+      document.getElementById('metric-chars').innerText = `${text.length} characters`;
+    }
+
+    document.getElementById('btn-print-note').addEventListener('click', () => window.print());
+
+    document.getElementById('btn-delete-note').addEventListener('click', () => {
+      if (confirm('Do you want to delete this permanently?')) {
+        if (isVaultMode) appData.vaultNotes = appData.vaultNotes.filter(n => n.id !== currentNoteId);
+        else appData.notes = appData.notes.filter(n => n.id !== currentNoteId);
+        saveState();
+        if (isVaultMode) renderVaultTree(); else renderNotesTree();
+        showView('placeholder');
+      }
+    });
+
+    // 6. Secure Vault Sector
+    const vaultPassInput = document.getElementById('vault-pass-input');
+    vaultPassInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleVaultUnlock(); });
+    document.getElementById('btn-unlock-vault').addEventListener('click', handleVaultUnlock);
+
+    function handleVaultUnlock() {
+      if (vaultPassInput.value === VAULT_PASS) {
+        document.getElementById('vault-locked-state').classList.add('hidden');
+        document.getElementById('vault-unlocked-state').classList.remove('hidden');
+        renderVaultTree();
+      } else {
+        alert('Invalid Password');
+        vaultPassInput.value = '';
+      }
+    }
+
+    document.getElementById('btn-add-vault-note').addEventListener('click', () => {
+      const title = prompt('Secret Note Title:') || 'Confidential';
+      const newSecret = { id: Date.now().toString(), title, content: '', images: [] };
+      appData.vaultNotes.push(newSecret);
+      saveState();
+      renderVaultTree();
+      openNote(newSecret.id, true);
+    });
+
+    function renderVaultTree() {
+      const container = document.getElementById('vault-notes-tree');
+      container.innerHTML = '';
+      appData.vaultNotes.forEach(n => {
+        const btn = document.createElement('button');
+        btn.className = 'note-item-btn';
+        btn.innerText = `🔒 ${n.title}`;
+        btn.onclick = () => openNote(n.id, true);
+        container.appendChild(btn);
+      });
+    }
+
+    // 7. Files
+    document.getElementById('file-uploader').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        appData.files.unshift({
+          id: Date.now().toString(),
+          name: file.name,
+          size: (file.size / 1024).toFixed(1) + ' KB',
+          data: evt.target.result
+        });
+        saveState();
+        renderFiles();
+        showView('files');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function renderFiles() {
+      const grid = document.getElementById('files-grid');
+      grid.innerHTML = '';
+      if (appData.files.length === 0) {
+        grid.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;">No files uploaded.</p>';
+        return;
+      }
+      appData.files.forEach(f => {
+        const row = document.createElement('div');
+        row.style.cssText = 'background:var(--bg-card);padding:8px;border-radius:4px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;';
+        row.innerHTML = `
+          <div>
+            <strong style="font-size:0.85rem;">${f.name}</strong>
+            <span style="font-size:0.7rem;color:var(--text-muted);display:block;">${f.size}</span>
+          </div>
+          <div>
+            <a href="${f.data}" download="${f.name}"><button class="btn-pill">Download</button></a>
+            <button class="btn-danger-sm" onclick="deleteFile('${f.id}')">Delete</button>
+          </div>
+        `;
+        grid.appendChild(row);
+      });
+    }
+
+    window.deleteFile = (id) => {
+      if (confirm('Delete file?')) {
+        appData.files = appData.files.filter(f => f.id !== id);
+        saveState();
+        renderFiles();
+      }
+    };
+
+    // 8. Calendar
+    function renderCalendar(date) {
+      const y = date.getFullYear();
+      const m = date.getMonth();
+      const monthNames = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
+      document.getElementById('cal-month-year').innerText = `${monthNames[m]} ${y}`;
+
+      const first = new Date(y, m, 1).getDay();
+      const days = new Date(y, m + 1, 0).getDate();
+      const grid = document.getElementById('calendar-grid');
+      grid.innerHTML = '';
+
+      for (let i = 0; i < first; i++) {
+        const b = document.createElement('div');
+        b.className = 'cal-day';
+        b.style.opacity = '0.1';
+        grid.appendChild(b);
+      }
+
+      for (let d = 1; d <= days; d++) {
+        const cell = document.createElement('div');
+        cell.className = 'cal-day';
+        const dStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        cell.innerHTML = `<strong>${d}</strong>`;
+
+        appData.events.filter(e => e.date === dStr).forEach(ev => {
+          const g = appData.groups.find(grp => grp.name === ev.group);
+          const tag = document.createElement('div');
+          tag.className = 'cal-event-tag';
+          tag.style.background = g ? g.color : '#00ff66';
+          tag.innerText = ev.title;
+          cell.appendChild(tag);
+        });
+
+        cell.onclick = () => openEventModal(dStr);
+        grid.appendChild(cell);
+      }
+    }
+
+    document.getElementById('cal-prev').onclick = () => { calDate.setMonth(calDate.getMonth() - 1); renderCalendar(calDate); };
+    document.getElementById('cal-next').onclick = () => { calDate.setMonth(calDate.getMonth() + 1); renderCalendar(calDate); };
+    document.getElementById('btn-today').onclick = () => { calDate = new Date(); renderCalendar(calDate); };
+
+    function openEventModal(dStr) {
+      selectedDateStr = dStr;
+      document.getElementById('modal-date-label').innerText = `Events for ${dStr}`;
+      const list = document.getElementById('day-events-list');
+      list.innerHTML = '';
+
+      appData.events.filter(e => e.date === dStr).forEach(ev => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;justify-content:space-between;padding:4px;font-size:0.75rem;background:var(--bg-card);margin-bottom:2px;';
+        row.innerHTML = `<span>[${ev.group}] ${ev.title}</span><button class="btn-danger-sm" onclick="deleteEvent('${ev.id}')">✕</button>`;
+        list.appendChild(row);
+      });
+
+      const sel = document.getElementById('modal-event-group');
+      sel.innerHTML = '';
+      appData.groups.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.name;
+        opt.innerText = g.name;
+        sel.appendChild(opt);
+      });
+
+      document.getElementById('event-modal').classList.remove('hidden');
+    }
+
+    document.getElementById('btn-close-event-modal').onclick = () => document.getElementById('event-modal').classList.add('hidden');
+
+    document.getElementById('btn-save-event').onclick = () => {
+      const title = document.getElementById('modal-event-title').value.trim();
+      const group = document.getElementById('modal-event-group').value;
+      if (title) {
+        appData.events.push({ id: Date.now().toString(), date: selectedDateStr, title, group });
+        saveState();
+        document.getElementById('modal-event-title').value = '';
+        openEventModal(selectedDateStr);
+        renderCalendar(calDate);
+      }
+    };
+
+    window.deleteEvent = (id) => {
+      appData.events = appData.events.filter(e => e.id !== id);
+      saveState();
+      openEventModal(selectedDateStr);
+      renderCalendar(calDate);
+    };
+
+    function renderGroups() {
+      const gl = document.getElementById('group-list');
+      gl.innerHTML = '';
+      appData.groups.forEach(g => {
+        const d = document.createElement('div');
+        d.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px;font-size:0.75rem;';
+        d.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${g.color}"></span><span>${g.name}</span>`;
+        gl.appendChild(d);
+      });
+    }
+
+    document.getElementById('btn-save-group').onclick = () => {
+      const name = document.getElementById('new-group-name').value.trim();
+      const color = document.getElementById('new-group-color').value;
+      if (name && !appData.groups.some(g => g.name === name)) {
+        appData.groups.push({ id: Date.now().toString(), name, color });
+        saveState();
+        renderGroups();
+        document.getElementById('new-group-name').value = '';
+      }
+    };
+
+    // 9. AI Engine
+    const aiModal = document.getElementById('ai-modal');
+    document.getElementById('btn-ai-toggle').onclick = () => aiModal.classList.remove('hidden');
+    document.getElementById('btn-close-ai').onclick = () => aiModal.classList.add('hidden');
+
+    document.getElementById('btn-ai-send').onclick = handleAI;
+    document.getElementById('ai-user-query').addEventListener('keypress', (e) => { if (e.key === 'Enter') handleAI(); });
+
+    async function handleAI() {
+      const input = document.getElementById('ai-user-query');
+      const q = input.value.trim();
+      if (!q) return;
+
+      const log = document.getElementById('ai-chat-log');
+      log.innerHTML += `<div class="chat-msg user">${q}</div>`;
+      input.value = '';
+
+      const lower = q.toLowerCase();
+
+      // Contact Info
+      if (lower.includes('contact') || lower.includes('alwin') || lower.includes('owner') || lower.includes('phone') || lower.includes('email')) {
+        log.innerHTML += `<div class="chat-msg ai"><strong>Alwin Raj // Contact Credentials:</strong><br>• Name: Alwin Raj<br>• Email: <a href="mailto:iamalwinraj@gmail.com" style="color:#00ff66;">iamalwinraj@gmail.com</a><br>• Phone: <a href="tel:+919714234559" style="color:#00ff66;">+91 9714234559</a></div>`;
+        log.scrollTop = log.scrollHeight;
+        return;
+      }
+
+      const tempId = 'ai-t-' + Date.now();
+      log.innerHTML += `<div class="chat-msg ai" id="${tempId}">Generating AI solution...</div>`;
+      log.scrollTop = log.scrollHeight;
+
+      let answer = '';
+      try {
+        const res = await fetch(`https://text.pollinations.ai/${encodeURIComponent(q)}`);
+        if (res.ok) answer = await res.text();
+      } catch (err) {
+        console.warn(err);
+      }
+
+      if (!answer) {
+        answer = `Query analyzed for: "${q}". (Check network connection for live responses).`;
+      }
+
+      const safe = encodeURIComponent(answer);
+      document.getElementById(tempId).innerHTML = `
+        <div>${answer}</div>
+        <button class="btn-insert-note" onclick="insertNote(decodeURIComponent('${safe}'))">📋 Insert to Note</button>
+      `;
+      log.scrollTop = log.scrollHeight;
+    }
+
+    window.insertNote = (text) => {
+      const list = isVaultMode ? appData.vaultNotes : appData.notes;
+      const note = list.find(n => n.id === currentNoteId);
+      if (note) {
+        note.content = (note.content ? note.content + '\n\n' : '') + text;
+        saveState();
+        openNote(note.id, isVaultMode);
+        aiModal.classList.add('hidden');
+      } else {
+        alert('Please open or create a note first!');
+      }
+    };
+
+    // 10. Global Search
+    document.getElementById('global-search').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      const container = document.getElementById('notes-tree');
+      container.innerHTML = '';
+
+      if (!q) { renderNotesTree(); return; }
+
+      appData.notes.filter(n => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q)).forEach(n => {
+        const btn = document.createElement('button');
+        btn.className = 'note-item-btn';
+        btn.innerText = `🔍 ${n.title}`;
+        btn.onclick = () => openNote(n.id, false);
+        container.appendChild(btn);
+      });
+    });
+  </script>
+</body>
+</html>
